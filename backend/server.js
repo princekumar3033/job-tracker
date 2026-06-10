@@ -86,4 +86,25 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Vercel Serverless environment export vs. local dev boot
+if (process.env.VERCEL) {
+  // Connect to database on demand for serverless invocations
+  let isDbConnected = false;
+  app.use(async (req, res, next) => {
+    if (!isDbConnected && mongoose.connection.readyState === 0) {
+      try {
+        await mongoose.connect(process.env.MONGO_URI);
+        isDbConnected = true;
+        console.log('Mongoose connected in serverless environment.');
+      } catch (err) {
+        console.error('Mongoose serverless connection error:', err);
+      }
+    }
+    next();
+  });
+  
+  module.exports = app;
+} else {
+  startServer();
+}
+
